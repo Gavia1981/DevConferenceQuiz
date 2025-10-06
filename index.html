@@ -154,6 +154,11 @@
         word-break: break-word;
       }
 
+      .pattern small {
+        opacity: 0.7;
+        font-weight: 200;
+      }
+
       /* Small always-visible hint inside each box */
       .box-hint {
         margin-top: 8px;
@@ -453,88 +458,76 @@
     </div>
     <script src="finisher-header.es5.min.js" type="text/javascript"></script>
     <script>
-      /* Data: pattern, hint, answer, songTitle, artist */
+      /* Data: hint, answer, songTitle, artist */
       const items = [
         {
-          pattern: "XX",
-          hint: "Ett ord från titeln (2)",
+          hint: "Ett ord från titeln",
           answer: "En",
           songTitle: "En vacker död stad",
           artist: "Thåström",
         },
         {
-          pattern: "XXX",
-          hint: "En färg (3)",
+          hint: "En färg",
           answer: "Gul",
           songTitle: "Banankontakt",
           artist: "Electric Banana Band",
         },
         {
-          pattern: "XXXXX",
-          hint: "Ett djur (5)",
+          hint: "Ett djur",
           answer: "Björn",
           songTitle: "Vart jag mig i världen vänder",
           artist: "Den Svenska Björnstammen",
         },
         {
-          pattern: "XXXX",
-          hint: "Ett ord från titeln (4)",
+          hint: "Ett ord från titeln",
           answer: "Från",
           songTitle: "Från balkongen",
           artist: "Oskar Linnros",
         },
         {
-          pattern: "XXXXXXXXXXX",
-          hint: "Ett landskap (11)",
+          hint: "Ett landskap",
           answer: "Hälsingland",
           songTitle: "Hälsingland",
           artist: "Tomas Andersson Wij",
         },
         {
-          pattern: "XXXXXX",
-          hint: "Ett ord från titeln (6)",
+          hint: "Ett ord från titeln",
           answer: "Kommer",
           songTitle: "Kommer du ihåg?",
           artist: "Hooja",
         },
         {
-          pattern: "XXX",
-          hint: "Ett ord från titeln (3)",
+          hint: "Ett ord från titeln",
           answer: "Slå",
           songTitle: "Slå mig hårt i ansiktet",
           artist: "Thomas Stenström",
         },
         {
-          pattern: "XXXX",
-          hint: "Ett ord från titeln på Svenska, skrivet i adjektivets neutrumform (5)",
+          hint: "Ett ord från titeln på Svenska, skrivet i adjektivets neutrumform",
           answer: "Stort",
           songTitle: "Big In Japan",
           artist: "Alphaville",
         },
         {
-          pattern: "XX",
-          hint: "Ett ord från titeln (2)",
+          hint: "Ett ord från titeln",
           answer: "På",
           songTitle: "Lys på mig",
           artist: "Viktor Leksell",
         },
         {
-          pattern: "XXXXXXXX",
-          hint: "Ett annat ord för titeln (8)",
+          hint: "Ett annat ord för titeln",
           answer: "Internet",
           songTitle: "World Wide Web",
           artist: "Nick Borgen",
         },
         {
-          pattern: "XXXX XXX XX",
-          hint: "Tre ord från titeln (9)",
+          hint: "Tre ord från titeln",
           answer: "Häng med på",
           songTitle: "Häng med på party",
           artist: "Magnus Uggla",
         },
         {
-          pattern: "XXXXXXXXXX",
-          hint: "Låtens titel (10)",
+          hint: "Låtens titel",
           answer: "Segertåget",
           songTitle: "Segertåget",
           artist: "Maskinen",
@@ -567,7 +560,7 @@
 
           const pattern = document.createElement("div");
           pattern.className = "pattern";
-          pattern.textContent = renderPatternText(it, idx);
+          pattern.innerHTML = renderPatternHTML(it, idx);
 
           const boxHint = document.createElement("div");
           boxHint.className = "box-hint";
@@ -585,12 +578,41 @@
         normalizeFontSize();
       }
 
-      function renderPatternText(item, idx) {
-        // Default: show pattern
-        if (!revealActive) return item.pattern;
+      function generatePattern(answer) {
+        // Convert answer to pattern: letters become X, spaces remain as spaces
+        return answer.replace(/[^\s]/g, 'X');
+      }
+
+      function getLetterCount(answer) {
+        // Count only letters (not spaces)
+        return answer.replace(/\s/g, '').length;
+      }
+
+      function renderPatternHTML(item, idx) {
+        // Default: show generated pattern with count in small tag
+        if (!revealActive) {
+          const pattern = generatePattern(item.answer);
+          const count = getLetterCount(item.answer);
+          return `${pattern} <small>(${count})</small>`;
+        }
         // In reveal mode: only show answer for boxes we've stepped past (idx < current)
-        if (revealActive && idx < current) return item.answer || item.pattern;
-        return item.pattern;
+        if (revealActive && idx < current) return item.answer;
+        const pattern = generatePattern(item.answer);
+        const count = getLetterCount(item.answer);
+        return `${pattern} <small>(${count})</small>`;
+      }
+
+      function renderPatternText(item, idx) {
+        // This function is for cases where we need plain text (no HTML)
+        if (!revealActive) {
+          const pattern = generatePattern(item.answer);
+          const count = getLetterCount(item.answer);
+          return `${pattern} (${count})`;
+        }
+        if (revealActive && idx < current) return item.answer;
+        const pattern = generatePattern(item.answer);
+        const count = getLetterCount(item.answer);
+        return `${pattern} (${count})`;
       }
 
       function renderHintText(item, idx) {
@@ -625,7 +647,7 @@
           const it = items[idx];
           const patternEl = node.querySelector(".pattern");
           const hintEl = node.querySelector(".box-hint");
-          if (patternEl) patternEl.textContent = renderPatternText(it, idx);
+          if (patternEl) patternEl.innerHTML = renderPatternHTML(it, idx);
           if (hintEl) hintEl.textContent = renderHintText(it, idx);
         });
 
@@ -789,10 +811,10 @@
           const rect = el.getBoundingClientRect();
           const innerW = rect.width - 24; // padding
           const innerH = rect.height - 48; // leave space for hint
-          const pattern = items[parseInt(el.dataset.index, 10)].pattern;
+          const answer = items[parseInt(el.dataset.index, 10)].answer;
           // longest contiguous group (word) length
           const longestWord =
-            pattern.split(" ").reduce((m, w) => Math.max(m, w.length), 0) || 1;
+            answer.split(" ").reduce((m, w) => Math.max(m, w.length), 0) || 1;
           return { innerW, innerH, longestWord };
         });
 

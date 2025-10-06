@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pattern Test</title>
+</head>
+<body>
+    <h1>Pattern Generation Test</h1>
+    <div id="output"></div>
+
+    <script>
+        function generatePattern(answer) {
+            return answer.replace(/[^\s]/g, 'X');
+        }
+
+        function getLetterCount(answer) {
+            return answer.replace(/\s/g, '').length;
+        }
+
+        const testCases = [
+            "En",
+            "Gul", 
+            "Björn",
+            "Häng med på",
+            "Hälsingland",
+            "oh no"
+        ];
+
+        let output = document.getElementById('output');
+        
+        testCases.forEach(test => {
+            const pattern = generatePattern(test);
+            const count = getLetterCount(test);
+            const result = `${pattern} <small>(${count})</small>`;
+            
+            output.innerHTML += `<p><strong>Input:</strong> "${test}"<br>
+                                <strong>Pattern:</strong> ${result}</p>`;
+        });
+    </script>
+</body>
+</html>
