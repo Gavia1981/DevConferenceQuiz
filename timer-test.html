@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="utf-8" />
+    <title>Timer Test - Times Up!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 50%, #ff7eb3 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .timer {
+            font-size: 72px;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 20px 0;
+        }
+
+        .timer.warning {
+            color: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .warning-overlay, .times-up-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 15rem;
+            font-weight: 800;
+            color: #ff0000;
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            animation: shake 0.2s infinite;
+            display: none;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-50%, -50%) rotate(-2deg); color: orange; }
+            75% { transform: translate(-50%, -50%) rotate(2deg); }
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Timer Test - Times Up Message</h1>
+    <p>This test shows a 5-second timer that will display "Hurry up!" in the last 2 seconds,<br>
+    then "Times up!" for 10 seconds after the timer expires.</p>
+    
+    <div id="timer" class="timer" style="display: none;">5 sek</div>
+    <button onclick="startTest()">Start 5-Second Timer Test</button>
+    <button onclick="resetTest()">Reset</button>
+    
+    <div id="warningOverlay" class="warning-overlay">Hurry up!</div>
+    <div id="timesUpOverlay" class="times-up-overlay">Times up!</div>
+
+    <script>
+        const timerEl = document.getElementById("timer");
+        const warningEl = document.getElementById("warningOverlay");
+        const timesUpEl = document.getElementById("timesUpOverlay");
+        
+        const TIMER_DURATION = 5; // 5 seconds for testing
+        const WARNING_DURATION = 2; // Show warning during last 2 seconds
+        const TIMES_UP_DISPLAY_DURATION = 10; // Show "Times up!" for 10 seconds
+        
+        let timeRemaining = TIMER_DURATION;
+        let timerInterval = null;
+        let timerActive = false;
+        let timesUpInterval = null;
+        let timesUpActive = false;
+
+        function startTest() {
+            if (timerActive) return;
+            
+            resetTest();
+            timerActive = true;
+            timerEl.style.display = "block";
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0) {
+                    stopTimer();
+                    showTimesUp();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timerActive = false;
+            timerEl.style.display = "none";
+            warningEl.style.display = "none";
+        }
+
+        function resetTest() {
+            stopTimer();
+            hideTimesUp();
+            timeRemaining = TIMER_DURATION;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            timerEl.textContent = `${timeRemaining} sek`;
+
+            // Turn red when WARNING_DURATION seconds or less remain
+            if (timeRemaining <= WARNING_DURATION) {
+                timerEl.classList.add("warning");
+            } else {
+                timerEl.classList.remove("warning");
+            }
+
+            // Show warning message when half of warning time is left
+            if (timeRemaining <= WARNING_DURATION / 2) {
+                warningEl.style.display = "block";
+            } else {
+                warningEl.style.display = "none";
+            }
+        }
+
+        function showTimesUp() {
+            if (timesUpActive) return;
+            
+            timesUpActive = true;
+            timesUpEl.style.display = "block";
+            
+            // Hide "Times up!" message after 10 seconds
+            timesUpInterval = setTimeout(() => {
+                hideTimesUp();
+            }, TIMES_UP_DISPLAY_DURATION * 1000);
+        }
+
+        function hideTimesUp() {
+            if (timesUpInterval) {
+                clearTimeout(timesUpInterval);
+                timesUpInterval = null;
+            }
+            timesUpActive = false;
+            timesUpEl.style.display = "none";
+        }
+    </script>
+</body>
+</html>

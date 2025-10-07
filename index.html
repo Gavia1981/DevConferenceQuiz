@@ -82,10 +82,14 @@
         max-width: 80vw;
         margin: 0 auto;
         text-align: center;
-        padding: 20px 0;
+        padding: 20px 10px;
+        line-height: 1;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 12px;
+        background-color: rgba(0,0,0,0.3);
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
       }
 
       .title h1 {
@@ -350,10 +354,63 @@
         }
         25% {
           transform: translate(-50%, -50%) rotate(-2deg);
-          color:orange
+          color: orange;
         }
         75% {
           transform: translate(-50%, -50%) rotate(2deg);
+        }
+      }
+
+      /* Times up overlay */
+      .times-up-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10rem;
+        font-weight: 800;
+        font-family: "New Amsterdam", sans-serif;
+        color: #ffcc00;
+        text-align: center;
+        z-index: 100;
+        pointer-events: none;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        -webkit-animation: roll-in-blurred-top 2s cubic-bezier(0.23, 1, 0.32, 1)
+          both;
+        animation: roll-in-blurred-top 2s cubic-bezier(0.23, 1, 0.32, 1) both;
+        display: none;
+      }
+
+      @-webkit-keyframes roll-in-blurred-top {
+        0% {
+          -webkit-transform: translateY(-800px) rotate(-720deg);
+          transform: translateY(-800px) rotate(-720deg);
+          -webkit-filter: blur(50px);
+          filter: blur(50px);
+          opacity: 0;
+        }
+        100% {
+          -webkit-transform: translateY(0) rotate(0deg);
+          transform: translateY(0) rotate(0deg);
+          -webkit-filter: blur(0);
+          filter: blur(0);
+          opacity: 1;
+        }
+      }
+      @keyframes roll-in-blurred-top {
+        0% {
+          -webkit-transform: translateY(-800px) rotate(-720deg);
+          transform: translateY(-800px) rotate(-720deg);
+          -webkit-filter: blur(50px);
+          filter: blur(50px);
+          opacity: 0;
+        }
+        100% {
+          -webkit-transform: translateY(0) rotate(0deg);
+          transform: translateY(0) rotate(0deg);
+          -webkit-filter: blur(0);
+          filter: blur(0);
+          opacity: 1;
         }
       }
 
@@ -409,7 +466,13 @@
         bottom: 1rem;
         opacity: 0.8;
         animation: flipLogo 5s infinite;
-        transition: transform 2s ease-in-out;
+        transition: transform 2s ease-in-out, opacity 0.3s ease;
+        cursor: pointer;
+      }
+
+      .logo:hover {
+        opacity: 1;
+        transform: scale(1.1);
       }
 
       @keyframes flipLogo {
@@ -423,22 +486,35 @@
           transform: scaleX(1.01);
         }
       }
+
+      .emoji {
+        font-size: 0.5em;
+        font-style: normal;
+        vertical-align: middle;
+        line-height: 1;
+        display: inline-block;
+      }
     </style>
   </head>
 
   <body>
     <div class="confetti" aria-hidden="true"></div>
-    <div id="warningOverlay" class="warning-overlay">Hurry up!</div>
+    <div id="warningOverlay" class="warning-overlay">
+      Hurry up!<i class="emoji">😨</i>
+    </div>
+    <div id="timesUpOverlay" class="times-up-overlay">
+      Times up!<i class="emoji">💀</i>
+    </div>
     <div class="finisher-header">
-      <img src="grouplogo.svg" alt="Bjorn Lunden" class="logo" />
+      <img src="grouplogo.svg" alt="Bjorn Lunden" class="logo" id="logoEl" />
       <div class="app">
         <header class="title">
-          <h1>DEV CONFERENCE QUIZZ 2025</h1>
+          <h1>✨ DEV CONFERENCE QUIZ 2025 ✨</h1>
         </header>
 
         <main>
           <button id="startBtn" class="start-btn" style="display: none">
-            STARTA QUIZ
+            STARTA QUIZ 🤘
           </button>
           <div class="boxes" id="boxes" role="list"></div>
         </main>
@@ -539,16 +615,21 @@
       const startBtn = document.getElementById("startBtn");
       const timerEl = document.getElementById("timer");
       const warningEl = document.getElementById("warningOverlay");
+      const timesUpEl = document.getElementById("timesUpOverlay");
+      const logoEl = document.getElementById("logoEl");
       let current = 0;
       let revealActive = false;
       let quizStarted = false;
 
       // Timer variables
-      const TIMER_DURATION = 20; // 2 minutes in seconds
-      const WARNING_DURATION = 10; // Show warning during last 20 seconds
+      const TIMER_DURATION = 120; // 2 minutes in seconds
+      const WARNING_DURATION = 30; // Show warning during last 30 seconds
+      const TIMES_UP_DISPLAY_DURATION = 10; // Show "Times up!" for 10 seconds
       let timeRemaining = TIMER_DURATION;
       let timerInterval = null;
       let timerActive = false;
+      let timesUpInterval = null;
+      let timesUpActive = false;
 
       function renderBoxes() {
         boxesEl.innerHTML = "";
@@ -580,12 +661,12 @@
 
       function generatePattern(answer) {
         // Convert answer to pattern: letters become X, spaces remain as spaces
-        return answer.replace(/[^\s]/g, 'X');
+        return answer.replace(/[^\s]/g, "X");
       }
 
       function getLetterCount(answer) {
         // Count only letters (not spaces)
-        return answer.replace(/\s/g, '').length;
+        return answer.replace(/\s/g, "").length;
       }
 
       function renderPatternHTML(item, idx) {
@@ -718,6 +799,7 @@
 
           if (timeRemaining <= 0) {
             stopTimer();
+            showTimesUp();
           }
         }, 1000);
       }
@@ -732,26 +814,64 @@
         warningEl.style.display = "none";
       }
 
+      function showTimesUp() {
+        if (timesUpActive) return;
+
+        timesUpActive = true;
+        timesUpEl.style.display = "block";
+
+        // Hide "Times up!" message after 10 seconds
+        timesUpInterval = setTimeout(() => {
+          hideTimesUp();
+        }, TIMES_UP_DISPLAY_DURATION * 1000);
+      }
+
+      function hideTimesUp() {
+        if (timesUpInterval) {
+          clearTimeout(timesUpInterval);
+          timesUpInterval = null;
+        }
+        timesUpActive = false;
+        timesUpEl.style.display = "none";
+      }
+
       function resetTimer() {
         stopTimer();
+        hideTimesUp();
         timeRemaining = TIMER_DURATION;
         updateTimerDisplay();
+      }
+
+      function restartQuiz() {
+        // Reset all quiz state
+        revealActive = false;
+        current = 0;
+        quizStarted = false;
+        
+        // Clean up visual state
+        document.body.classList.remove("reveal-active");
+        resetTimer();
+        
+        // Re-render the quiz
+        updateState();
+        normalizeFontSize();
       }
 
       function updateTimerDisplay() {
         const minutes = Math.floor(timeRemaining / 60);
         const seconds = timeRemaining % 60;
-        const display =
+        let display =
           minutes > 0 ? `${minutes} min ${seconds} sek` : `${seconds} sek`;
-
-        timerEl.textContent = display;
 
         // Turn red when WARNING_DURATION seconds or less remain
         if (timeRemaining <= WARNING_DURATION) {
           timerEl.classList.add("warning");
+          display = `🚨 ${display}`;
         } else {
           timerEl.classList.remove("warning");
         }
+
+        timerEl.textContent = display;
 
         // Show warning message when half of warning time is left
         if (timeRemaining <= WARNING_DURATION / 2) {
@@ -790,16 +910,22 @@
           current = 0;
           document.body.classList.add("reveal-active");
           stopTimer(); // Stop timer when entering reveal mode
+          hideTimesUp(); // Hide times up message when entering reveal mode
         } else {
           // Deactivate and reset to first step
           revealActive = false;
           current = 0;
           quizStarted = false; // Reset quiz status
           document.body.classList.remove("reveal-active");
-          resetTimer(); // Reset timer when leaving reveal mode
+          resetTimer(); // Reset timer when leaving reveal mode (this also calls hideTimesUp)
         }
         updateState();
         normalizeFontSize();
+      });
+
+      // Logo click behavior: restart the quiz
+      logoEl.addEventListener("click", () => {
+        restartQuiz();
       });
 
       // Compute a uniform font-size so pattern text has the same scale across boxes regardless of wrapping.
